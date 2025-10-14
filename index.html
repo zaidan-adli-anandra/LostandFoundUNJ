@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Lost & Found</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Brand -->
+  <link rel="stylesheet" href="assets/brand.css">
+</head>
+<body>
+  <!-- Loader Overlay -->
+  <div id="loader" class="lf-loader" aria-live="polite" aria-busy="true" hidden>
+    <div class="lf-loader-inner">
+      <div class="spinner-border text-light" role="status" aria-label="Loading"></div>
+      <div class="mt-2 small text-white-50">Loading data…</div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+  <div class="container py-4">
+    <header class="d-flex flex-column flex-md-row align-items-md-center gap-3 mb-3">
+      <h1 class="h3 m-0" style="color:var(--ink)">Lost & Found</h1>
+    </header>
+
+    <!-- Tabs -->
+    <ul class="nav nav-pills gap-2 mb-3" id="lfTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="lost-tab" data-bs-toggle="pill" data-bs-target="#lost-pane" type="button" role="tab">Lost</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="found-tab" data-bs-toggle="pill" data-bs-target="#found-pane" type="button" role="tab">Found</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- LOST -->
+      <div class="tab-pane fade show active" id="lost-pane" role="tabpanel">
+        <div class="search-wrap mb-3">
+          <input id="search-lost" type="search" class="form-control" placeholder="Search lost items…">
+        </div>
+        <div class="row g-3" id="grid-lost"></div>
+      </div>
+
+      <!-- FOUND -->
+      <div class="tab-pane fade" id="found-pane" role="tabpanel">
+        <div class="search-wrap mb-3">
+          <input id="search-found" type="search" class="form-control" placeholder="Search found items…">
+        </div>
+        <div class="row g-3" id="grid-found"></div>
+      </div>
+    </div>
+
+    <hr>
+    <div id="debug" class="small text-muted"></div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Item details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <img id="d-image" class="w-100 rounded mb-3" alt="Image" style="max-height:320px;object-fit:cover;">
+          <dl class="row">
+            <dt class="col-sm-4">Name</dt><dd class="col-sm-8" id="d-name"></dd>
+            <dt class="col-sm-4">WhatsApp</dt><dd class="col-sm-8" id="d-phone"></dd>
+            <dt class="col-sm-4">Category</dt><dd class="col-sm-8" id="d-category"></dd>
+            <dt class="col-sm-4">Item</dt><dd class="col-sm-8" id="d-item"></dd>
+            <dt class="col-sm-4">Description</dt><dd class="col-sm-8" id="d-desc"></dd>
+            <dt class="col-sm-4">Where</dt><dd class="col-sm-8" id="d-where"></dd>
+            <dt class="col-sm-4">When</dt><dd class="col-sm-8" id="d-when"></dd>
+          </dl>
+        </div>
+        <div class="modal-footer">
+          <a id="d-wa" target="_blank" class="btn btn-brand">Contact on WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    const API_URL   = "https://script.google.com/macros/s/AKfycbw4cW7hYM7YVLyuSTj6YUcVWrqPxFfrfpmPNOILOz8Dg8YaiUqV_6FeMjPRqf75vGjW/exec";
+    const API_TOKEN = "Br13ll3DanV13r4CantikBGT";
+    const REFRESH_MS = 60000;
+
+    let allData=[],lost=[],found=[], lastHash="";
+    const $=(id)=>document.getElementById(id);
+    const detailModal=new bootstrap.Modal($('#detailModal'));
+    const loader=document.getElementById('loader');
+    function showLoader(){loader.hidden=false;}
+    function hideLoader(){loader.hidden=true;}
+
+    function escapeHtml(s){
+      return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;')
+        .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+    }
+
+    function formatWhen(s){
+      if(!s)return'—';
+      const d=new Date(s);
+      if(isNaN(d))return s;
+      const dd=String(d.getDate()).padStart(2,'0');
+      const mm=String(d.getMonth()+1).padStart(2,'0');
+      return `${dd}/${mm}/${d.getFullYear()}`;
+    }
+
+    const PLACEHOLDER='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450">
+        <rect width="100%" height="100%" fill="#e6f2ee"/>
+        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+          fill="#196950" font-family="Arial" font-size="28">No Image</text>
+      </svg>`);
+
+    function buildWA(phone,text){
+      const p=(phone||'').replace(/[^\d]/g,'');
+      const t=encodeURIComponent(text||'');
+      return p?`https://wa.me/${p}?text=${t}`:'#';
+    }
+
+    function showToast(message, variant='success', delay=2200){
+      const container=document.getElementById('toast-container');
+      const toastEl=document.createElement('div');
+      toastEl.className=`toast align-items-center text-bg-${variant} border-0`;
+      toastEl.innerHTML=`
+        <div class="d-flex">
+          <div class="toast-body">${escapeHtml(message)}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>`;
+      container.appendChild(toastEl);
+      const t=new bootstrap.Toast(toastEl,{delay,autohide:true});
+      t.show();
+      toastEl.addEventListener('hidden.bs.toast',()=>toastEl.remove());
+    }
+
+    function cardTemplate(r){
+      const imgSrc=r.imageThumb||PLACEHOLDER;
+      const desc=(r.description||'').toString();
+      const short=desc.length>120?desc.slice(0,117)+'…':desc;
+      return `
+      <div class="col-12 col-sm-6 col-lg-4">
+        <div class="card lf h-100 shadow-sm">
+          <img src="${escapeHtml(imgSrc)}" class="card-img-top" alt="Image" loading="lazy">
+          <div class="card-body">
+            <span class="badge badge-brand mb-2">${escapeHtml(r.category||'—')}</span>
+            <h5 class="card-title mb-1" style="color:var(--ink)">${escapeHtml(r.name||'—')}</h5>
+            <p class="card-text text-muted">${escapeHtml(short||'No description')}</p>
+            <button class="btn btn-brand btn-sm" onclick='openDetail(${JSON.stringify(r).replaceAll("'","&apos;")})'>View details</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    window.openDetail=(r)=>{
+      $('#d-image').src=r.imageThumb||PLACEHOLDER;
+      $('#d-name').textContent=r.name||'—';
+      $('#d-phone').textContent=r.phone||'—';
+      $('#d-category').textContent=r.category||'—';
+      $('#d-item').textContent=r.itemName||'—';
+      $('#d-desc').textContent=r.description||'—';
+      $('#d-where').textContent=r.where||'—';
+      $('#d-when').textContent=formatWhen(r.when);
+      const waUrl=r.phone?buildWA(r.phone,`Hi ${r.name||''}, about your ${String(r.category||'item').toLowerCase()}: ${r.itemName||''}`):'#';
+      $('#d-wa').href=waUrl;
+      $('#d-wa').classList.toggle('disabled',!r.phone);
+      detailModal.show();
+    };
+
+    function renderTab(list,container){
+      if(!Array.isArray(list)||list.length===0){
+        container.innerHTML='<div class="col-12 text-center text-muted py-4">No items</div>';
+        return;
+      }
+      container.innerHTML=list.map(r=>cardTemplate(r)).join('');
+    }
+
+    function hashData(arr){
+      try{return JSON.stringify(arr.map(x=>[x.id,x.category,x.name,x.itemName,x.when])).slice(0,5000);}
+      catch{return Math.random().toString(36).slice(2);}
+    }
+
+    async function load(){
+      showLoader();
+      const url=`${API_URL}?token=${API_TOKEN}&limit=1000&cb=${Date.now()}`;
+      try{
+        const res=await fetch(url,{cache:'no-store'});
+        const json=await res.json();
+        const newData=Array.isArray(json.data)?json.data:[];
+        const newHash=hashData(newData);
+        allData=newData;
+        lost=allData.filter(x=>/lost/i.test(String(x.category||'')));
+        found=allData.filter(x=>/found/i.test(String(x.category||'')));
+        renderTab(lost,$('grid-lost'));
+        renderTab(found,$('grid-found'));
+        $('#debug').innerText=`Counts → all:${allData.length}, lost:${lost.length}, found:${found.length}`;
+        if(newHash!==lastHash){
+          showToast('Data updated ✅','success',2000);
+          lastHash=newHash;
+        }
+      }catch(e){
+        console.error(e);
+        $('#debug').innerText='Error loading data.';
+        showToast('Failed to sync ⚠️','danger',2500);
+      }finally{
+        hideLoader();
+      }
+    }
+
+    function makeSearch(inputId,sourceGetter,targetId){
+      const input=$(inputId);
+      input.addEventListener('input',()=>{
+        const q=input.value.trim().toLowerCase();
+        const src=sourceGetter();
+        const filtered=!q?src:src.filter(r=>[r.name,r.itemName,r.description,r.where,r.when]
+          .some(v=>String(v||'').toLowerCase().includes(q)));
+        renderTab(filtered,$(targetId));
+      });
+    }
+
+    makeSearch('search-lost',()=>lost,'grid-lost');
+    makeSearch('search-found',()=>found,'grid-found');
+
+    load();
+    setInterval(load,REFRESH_MS);
+  </script>
+</body>
+</html>

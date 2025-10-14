@@ -1,0 +1,87 @@
+:root {
+  --brand: #196950;
+  --brand-700: #145341;
+  --brand-100: #e6f2ee;
+  --ink: #0f172a;
+}
+
+body {
+  background: #f8fafc;
+}
+
+.nav-pills .nav-link {
+  color: var(--brand-700);
+  border: 1px solid var(--brand);
+}
+
+.nav-pills .nav-link.active {
+  background: var(--brand);
+  color: #fff;
+}
+
+.btn-brand {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+}
+
+.btn-brand:hover {
+  background: var(--brand-700);
+  color: #fff;
+}
+
+.badge-brand {
+  background: var(--brand-100);
+  color: var(--brand-700);
+  border: 1px solid var(--brand);
+}
+
+.card.lf {
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.card-img-top {
+  object-fit: cover;
+  height: 180px;
+}
+
+.search-wrap {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: .75rem;
+  padding: .75rem;
+}
+
+/* Loader overlay */
+.lf-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(2px);
+}
+
+.lf-loader[hidden] {
+  display: none;
+}
+
+.lf-loader-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  background: rgba(25, 105, 80, .85);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+/* Toast container */
+.toast-container {
+  z-index: 1060;
+}
