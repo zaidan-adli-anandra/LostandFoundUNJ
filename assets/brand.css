@@ -103,3 +103,13 @@ body {
 .toast-container {
   z-index: 1060;
 }
+
+/* Detail modal: make labels (dt) bold on all screens, ensuring mobile shows bold */
+#detailModal dt {
+  font-weight: 700 !important;
+  color: var(--ink);
+}
+
+#detailModal dd {
+  font-weight: 400;
+}

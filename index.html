@@ -71,6 +71,7 @@
           <img id="d-image" class="w-100 rounded mb-3" alt="Image" style="max-height:320px;object-fit:cover;">
           <dl class="row">
             <dt class="col-sm-4">Name</dt><dd class="col-sm-8" id="d-name"></dd>
+            <dt class="col-sm-4">WhatsApp</dt><dd class="col-sm-8" id="d-phone"></dd>
             <dt class="col-sm-4">Category</dt><dd class="col-sm-8" id="d-category"></dd>
             <dt class="col-sm-4">Item</dt><dd class="col-sm-8" id="d-item"></dd>
             <dt class="col-sm-4">Description</dt><dd class="col-sm-8" id="d-desc"></dd>
@@ -156,6 +157,55 @@
       return p?`https://wa.me/${p}?text=${t}`:`https://wa.me/?text=${t}`;
     }
 
+    // Resolve WhatsApp/phone number from varied key names (handles spaces, dots, underscores)
+    function getPhoneField(obj){
+      if(!obj || typeof obj!=='object') return '';
+      const normalize=(k)=>k.toLowerCase().replace(/[^a-z0-9]/g,'');
+      const candidates=[
+        'phone','phonenumber','tel','telephone','telepon','hp','handphone','mobile','mobilephone',
+        'nohp','nohphwa','nohandphone','nomor','nomorhp','kontak','contact','contactnumber',
+        'whatsapp','whatsappnumber','whatsappno','whatsappid','whatsappaccount','whatsApp',
+        'no_wa','nowa','noWA','noWhatsapp','noWhatsApp','nowhatsapp','no whatsapp','no. whatsapp','no wa','no. wa'
+      ].map(normalize);
+      const candSet=new Set(candidates);
+      const tryExtract=(value)=>{
+        if(value==null) return '';
+        let s=String(value).trim();
+        if(!s) return '';
+        const tel=s.match(/^tel:\s*\+?(\d+)/i); if(tel) return `+${tel[1]}`;
+        const wa =s.match(/wa\.me\/(\d+)/i);    if(wa)  return `+${wa[1]}`;
+        return s;
+      };
+      // Direct keys
+      for(const k of Object.keys(obj)){
+        if(candSet.has(normalize(k))){
+          const v=tryExtract(obj[k]);
+          if(v) return v;
+        }
+      }
+      // One-level nested objects
+      for(const k of Object.keys(obj)){
+        const val=obj[k];
+        if(val && typeof val==='object'){
+          for(const kk of Object.keys(val)){
+            if(candSet.has(normalize(kk))){
+              const v=tryExtract(val[kk]);
+              if(v) return v;
+            }
+          }
+        }
+      }
+      // Fallback: any string-like value that looks like a phone number (>=8 digits, not a generic URL)
+      for(const k of Object.keys(obj)){
+        const s=tryExtract(obj[k]);
+        if(s && !/^https?:\/\//i.test(s)){
+          const digits=(s.match(/\d/g)||[]).length;
+          if(digits>=8) return s;
+        }
+      }
+      return '';
+    }
+
     function showToast(message, variant='success', delay=2200){
       const container=document.getElementById('toast-container');
       const toastEl=document.createElement('div');
@@ -190,16 +240,18 @@
     }
 
     window.openDetail=(r)=>{
-    $('d-image').src=r.imageThumb||PLACEHOLDER;
-    $('d-name').textContent=r.name||'—';
-    $('d-category').textContent=r.category||'—';
-    $('d-item').textContent=r.itemName||'—';
-    $('d-desc').textContent=r.description||'—';
-    $('d-where').textContent=r.where||'—';
-    $('d-when').textContent=formatWhen(r.when);
-    const waUrl=buildWA(r.phone,`Hi ${r.name||''}, about your ${String(r.category||'item').toLowerCase()}: ${r.itemName||''}`);
-    $('d-wa').href=waUrl;
-    $('d-wa').classList.remove('disabled');
+      $('d-image').src=r.imageThumb||PLACEHOLDER;
+      $('d-name').textContent=r.name||'—';
+      const phone=getPhoneField(r);
+      $('d-phone').textContent=phone||'—';
+      $('d-category').textContent=r.category||'—';
+      $('d-item').textContent=r.itemName||'—';
+      $('d-desc').textContent=r.description||'—';
+      $('d-where').textContent=r.where||'—';
+      $('d-when').textContent=formatWhen(r.when);
+      const waUrl=buildWA(phone,`Hi ${r.name||''}, about your ${String(r.category||'item').toLowerCase()}: ${r.itemName||''}`);
+      $('d-wa').href=waUrl;
+      $('d-wa').classList.remove('disabled');
       const dm=getDetailModal();
       if(dm) dm.show();
     };
@@ -240,8 +292,10 @@
           return;
         }
         const newData=Array.isArray(json.data)?json.data:[];
-        const newHash=hashData(newData);
-        allData=newData;
+        // Reverse the order provided by the API to show newest → oldest
+        const reversed=newData.slice().reverse();
+        const newHash=hashData(reversed);
+        allData=reversed;
         lost =allData.filter(x=>/lost/i.test(String(x.category||'')));
         found=allData.filter(x=>/found/i.test(String(x.category||'')));
         renderTab(lost,$('grid-lost'));
