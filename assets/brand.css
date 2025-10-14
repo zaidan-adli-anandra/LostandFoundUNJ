@@ -104,3 +104,15 @@ body {
   z-index: 1060;
 }
 
+/* Header brand logo sizing: 2x on mobile, 4x on desktop - keep aspect ratio */
+#brand-logo {
+  width: 320px;   /* 2x mobile width (original ~160) */
+  height: auto;   /* keep aspect ratio */
+  max-width: 90vw; /* avoid overflowing small screens */
+  display: block;
+}
+
+@media (min-width: 768px) {
+  #brand-logo { width: 640px; } /* ~4x on md+ */
+}
+

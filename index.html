@@ -23,19 +23,22 @@
   <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
 
   <div class="container py-4">
-    <header class="d-flex flex-column flex-md-row align-items-md-center gap-3 mb-3">
-      <h1 class="h3 m-0" style="color:var(--ink)">Lost & Found</h1>
+    <header class="d-flex justify-content-center align-items-center mb-3">
+      <img id="brand-logo" src="assets/logo.png" alt="Lost & Found UNJ logo">
     </header>
 
-    <!-- Tabs -->
-    <ul class="nav nav-pills gap-2 mb-3" id="lfTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="lost-tab" data-bs-toggle="pill" data-bs-target="#lost-pane" type="button" role="tab">Lost</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="found-tab" data-bs-toggle="pill" data-bs-target="#found-pane" type="button" role="tab">Found</button>
-      </li>
-    </ul>
+    <!-- Tabs + Report button -->
+    <div class="d-flex flex-column flex-md-row align-items-md-center gap-2 mb-3">
+      <ul class="nav nav-pills gap-2" id="lfTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="lost-tab" data-bs-toggle="pill" data-bs-target="#lost-pane" type="button" role="tab">Lost</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="found-tab" data-bs-toggle="pill" data-bs-target="#found-pane" type="button" role="tab">Found</button>
+        </li>
+      </ul>
+      <a href="https://forms.gle/ChUpk3x3BMwSLQXN7" target="_blank" rel="noopener" class="btn btn-danger ms-md-auto">Report</a>
+    </div>
 
     <div class="tab-content">
       <!-- LOST -->
