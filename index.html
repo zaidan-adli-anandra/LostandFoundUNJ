@@ -71,7 +71,6 @@
           <img id="d-image" class="w-100 rounded mb-3" alt="Image" style="max-height:320px;object-fit:cover;">
           <dl class="row">
             <dt class="col-sm-4">Name</dt><dd class="col-sm-8" id="d-name"></dd>
-            <dt class="col-sm-4">WhatsApp</dt><dd class="col-sm-8" id="d-phone"></dd>
             <dt class="col-sm-4">Category</dt><dd class="col-sm-8" id="d-category"></dd>
             <dt class="col-sm-4">Item</dt><dd class="col-sm-8" id="d-item"></dd>
             <dt class="col-sm-4">Description</dt><dd class="col-sm-8" id="d-desc"></dd>
@@ -153,7 +152,8 @@
     function buildWA(phone,text){
       const p=(phone||'').replace(/[^\d]/g,'');
       const t=encodeURIComponent(text||'');
-      return p?`https://wa.me/${p}?text=${t}`:'#';
+      // If no phone, still open WhatsApp with prefilled text
+      return p?`https://wa.me/${p}?text=${t}`:`https://wa.me/?text=${t}`;
     }
 
     function showToast(message, variant='success', delay=2200){
@@ -190,17 +190,16 @@
     }
 
     window.openDetail=(r)=>{
-  $('d-image').src=r.imageThumb||PLACEHOLDER;
-  $('d-name').textContent=r.name||'—';
-  $('d-phone').textContent=r.phone||'—';
-  $('d-category').textContent=r.category||'—';
-  $('d-item').textContent=r.itemName||'—';
-  $('d-desc').textContent=r.description||'—';
-  $('d-where').textContent=r.where||'—';
-  $('d-when').textContent=formatWhen(r.when);
-      const waUrl=r.phone?buildWA(r.phone,`Hi ${r.name||''}, about your ${String(r.category||'item').toLowerCase()}: ${r.itemName||''}`):'#';
-  $('d-wa').href=waUrl;
-  $('d-wa').classList.toggle('disabled',!r.phone);
+    $('d-image').src=r.imageThumb||PLACEHOLDER;
+    $('d-name').textContent=r.name||'—';
+    $('d-category').textContent=r.category||'—';
+    $('d-item').textContent=r.itemName||'—';
+    $('d-desc').textContent=r.description||'—';
+    $('d-where').textContent=r.where||'—';
+    $('d-when').textContent=formatWhen(r.when);
+    const waUrl=buildWA(r.phone,`Hi ${r.name||''}, about your ${String(r.category||'item').toLowerCase()}: ${r.itemName||''}`);
+    $('d-wa').href=waUrl;
+    $('d-wa').classList.remove('disabled');
       const dm=getDetailModal();
       if(dm) dm.show();
     };
@@ -247,7 +246,9 @@
         found=allData.filter(x=>/found/i.test(String(x.category||'')));
         renderTab(lost,$('grid-lost'));
         renderTab(found,$('grid-found'));
-  $('debug').innerText=`Counts → all:${allData.length}, lost:${lost.length}, found:${found.length}`;
+        // Update tab button counts
+        const lt=$('lost-tab'); if(lt) lt.textContent=`Lost (${lost.length})`;
+        const ft=$('found-tab'); if(ft) ft.textContent=`Found (${found.length})`;
         if(newHash!==lastHash){
           showToast('Data updated ✅','success',2000);
           lastHash=newHash;
