@@ -9,6 +9,19 @@ body {
   background: #f8fafc;
 }
 
+/* Narrower site width on large screens */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px; /* slightly narrower than Bootstrap xl default */
+  }
+}
+
+@media (min-width: 1400px) {
+  .container {
+    max-width: 1200px; /* keep it tighter on very wide screens */
+  }
+}
+
 .nav-pills .nav-link {
   color: var(--brand-700);
   border: 1px solid var(--brand);
@@ -45,6 +58,11 @@ body {
 .card-img-top {
   object-fit: cover;
   height: 180px;
+}
+
+/* Slightly tighter card padding to help fit 5 across comfortably */
+.card.lf .card-body {
+  padding: 0.9rem 1rem 1rem;
 }
 
 .search-wrap {

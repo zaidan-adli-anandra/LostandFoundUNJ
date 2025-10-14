@@ -43,7 +43,7 @@
         <div class="search-wrap mb-3">
           <input id="search-lost" type="search" class="form-control" placeholder="Search lost items…">
         </div>
-        <div class="row g-3" id="grid-lost"></div>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3" id="grid-lost"></div>
       </div>
 
       <!-- FOUND -->
@@ -51,7 +51,7 @@
         <div class="search-wrap mb-3">
           <input id="search-found" type="search" class="form-control" placeholder="Search found items…">
         </div>
-        <div class="row g-3" id="grid-found"></div>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-3" id="grid-found"></div>
       </div>
     </div>
 
@@ -95,10 +95,36 @@
     const API_TOKEN = "Br13ll3DanV13r4CantikBGT";
     const REFRESH_MS = 60000;
 
+    window.onerror = (msg, src, line, col, err) => {
+    const d = document.getElementById('debug') || (function(){ const x=document.createElement('div'); x.id='debug'; x.style.whiteSpace='pre-wrap'; document.body.appendChild(x); return x; })();
+    d.textContent += `\nJS Error: ${msg} @ ${src}:${line}:${col}\n${err && err.stack || ''}\n`;
+    };
+
     // === STATE ===
     let allData=[],lost=[],found=[], lastHash="";
     const $=(id)=>document.getElementById(id);
-    const detailModal=new bootstrap.Modal($('#detailModal'));
+    // Lazy-create modal instance when needed to avoid timing issues
+    let modalInstance=null;
+    function getDetailModal(){
+      try{
+        if(modalInstance) return modalInstance;
+        if(!(window.bootstrap && bootstrap.Modal)){
+          console.error('Bootstrap JS not loaded or Modal unavailable');
+          const dbg=$('#debug'); if(dbg) dbg.innerText='Bootstrap not loaded. Check network/CDN.';
+          return null;
+        }
+        const el=$('#detailModal');
+        if(!el){
+          console.error('#detailModal not found in DOM');
+          return null;
+        }
+        modalInstance=new bootstrap.Modal(el);
+        return modalInstance;
+      }catch(err){
+        console.error('Error creating Modal',err);
+        return null;
+      }
+    }
     const loader=document.getElementById('loader');
     function showLoader(){loader.hidden=false;}
     function hideLoader(){loader.hidden=true;}
@@ -150,12 +176,12 @@
       const desc=(r.description||'').toString();
       const short=desc.length>120?desc.slice(0,117)+'…':desc;
       return `
-      <div class="col-12 col-sm-6 col-lg-4">
+      <div class="col">
         <div class="card lf h-100 shadow-sm">
           <img src="${escapeHtml(imgSrc)}" class="card-img-top" alt="Image" loading="lazy">
           <div class="card-body">
             <span class="badge badge-brand mb-2">${escapeHtml(r.category||'—')}</span>
-            <h5 class="card-title mb-1" style="color:var(--ink)">${escapeHtml(r.name||'—')}</h5>
+            <h5 class="card-title mb-1" style="color:var(--ink)">${escapeHtml(r.itemName||'—')}</h5>
             <p class="card-text text-muted">${escapeHtml(short||'No description')}</p>
             <button class="btn btn-brand btn-sm" onclick='openDetail(${JSON.stringify(r).replaceAll("'","&apos;")})'>View details</button>
           </div>
@@ -175,7 +201,8 @@
       const waUrl=r.phone?buildWA(r.phone,`Hi ${r.name||''}, about your ${String(r.category||'item').toLowerCase()}: ${r.itemName||''}`):'#';
       $('#d-wa').href=waUrl;
       $('#d-wa').classList.toggle('disabled',!r.phone);
-      detailModal.show();
+      const dm=getDetailModal();
+      if(dm) dm.show();
     };
 
     function renderTab(list,container){
@@ -191,59 +218,47 @@
       catch{return Math.random().toString(36).slice(2);}
     }
 
-    // === JSONP loader ===
-    function load(){
+    // === Loader (fetch) ===
+    async function load(){
       showLoader();
-      const cbName='handleSheet_'+Date.now();
-      const s=document.createElement('script');
-      const url=`${API_URL}?token=${API_TOKEN}&limit=1000&cb=${Date.now()}&callback=${cbName}`;
-
-      window[cbName]=(json)=>{
-        try{
-          const newData=Array.isArray(json.data)?json.data:[];
-          const newHash=hashData(newData);
-          allData=newData;
-          lost =allData.filter(x=>/lost/i.test(String(x.category||'')));
-          found=allData.filter(x=>/found/i.test(String(x.category||'')));
-          renderTab(lost,$('grid-lost'));
-          renderTab(found,$('grid-found'));
-          $('#debug').innerText=`Counts → all:${allData.length}, lost:${lost.length}, found:${found.length}`;
-          if(newHash!==lastHash){
-            showToast('Data updated ✅','success',2000);
-            lastHash=newHash;
-          }
-        }catch(err){
-          console.error(err);
-          $('#debug').innerText='Error parsing data.';
+      const url=`${API_URL}?token=${API_TOKEN}&limit=1000&cb=${Date.now()}`;
+      try{
+        const res=await fetch(url,{cache:'no-store'});
+        if(!res.ok){
+          const text=await res.text().catch(()=>'<unable to read response>');
+          console.error('API error',res.status,res.statusText,text);
+          $('#debug').innerText=`API error ${res.status}: ${text.slice(0,300)}`;
           showToast('Failed to sync ⚠️','danger',2500);
-        }finally{
-          cleanup();
-          hideLoader();
+          return;
         }
-      };
-
-      const to=setTimeout(()=>{
-        cleanup();
-        hideLoader();
-        $('#debug').innerText='Timeout loading data.';
-        showToast('Timeout fetching data ⚠️','danger',2500);
-      },10000);
-
-      function cleanup(){
-        clearTimeout(to);
-        delete window[cbName];
-        s.remove();
-      }
-
-      s.src=url;
-      s.async=true;
-      s.onerror=()=>{
-        cleanup();
-        hideLoader();
-        $('#debug').innerText='Network error.';
+        let json;
+        try{ json=await res.json(); }
+        catch(parseErr){
+          const text=await res.text().catch(()=>'<unable to read response>');
+          console.error('JSON parse error',parseErr,text);
+          $('#debug').innerText='Invalid JSON returned from API';
+          showToast('Invalid data ⚠️','danger',2500);
+          return;
+        }
+        const newData=Array.isArray(json.data)?json.data:[];
+        const newHash=hashData(newData);
+        allData=newData;
+        lost =allData.filter(x=>/lost/i.test(String(x.category||'')));
+        found=allData.filter(x=>/found/i.test(String(x.category||'')));
+        renderTab(lost,$('grid-lost'));
+        renderTab(found,$('grid-found'));
+        $('#debug').innerText=`Counts → all:${allData.length}, lost:${lost.length}, found:${found.length}`;
+        if(newHash!==lastHash){
+          showToast('Data updated ✅','success',2000);
+          lastHash=newHash;
+        }
+      }catch(err){
+        console.error('Network/other error',err);
+        $('#debug').innerText='Network error. See console for details.';
         showToast('Network error ⚠️','danger',2500);
-      };
-      document.head.appendChild(s);
+      }finally{
+        hideLoader();
+      }
     }
 
     // Search
@@ -258,11 +273,12 @@
       });
     }
 
-    makeSearch('search-lost',()=>lost,'grid-lost');
-    makeSearch('search-found',()=>found,'grid-found');
-
-    load();
-    setInterval(load, REFRESH_MS);
+    // Initialize after DOM is ready (avoid race conditions)
+    document.addEventListener('DOMContentLoaded',()=>{
+      makeSearch('search-lost',()=>lost,'grid-lost');
+      makeSearch('search-found',()=>found,'grid-found');
+      load();
+    });
   </script>
 </body>
 </html>
