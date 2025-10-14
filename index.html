@@ -110,10 +110,10 @@
         if(modalInstance) return modalInstance;
         if(!(window.bootstrap && bootstrap.Modal)){
           console.error('Bootstrap JS not loaded or Modal unavailable');
-          const dbg=$('#debug'); if(dbg) dbg.innerText='Bootstrap not loaded. Check network/CDN.';
+          const dbg=$('debug'); if(dbg) dbg.innerText='Bootstrap not loaded. Check network/CDN.';
           return null;
         }
-        const el=$('#detailModal');
+  const el=$('detailModal');
         if(!el){
           console.error('#detailModal not found in DOM');
           return null;
@@ -190,17 +190,17 @@
     }
 
     window.openDetail=(r)=>{
-      $('#d-image').src=r.imageThumb||PLACEHOLDER;
-      $('#d-name').textContent=r.name||'—';
-      $('#d-phone').textContent=r.phone||'—';
-      $('#d-category').textContent=r.category||'—';
-      $('#d-item').textContent=r.itemName||'—';
-      $('#d-desc').textContent=r.description||'—';
-      $('#d-where').textContent=r.where||'—';
-      $('#d-when').textContent=formatWhen(r.when);
+  $('d-image').src=r.imageThumb||PLACEHOLDER;
+  $('d-name').textContent=r.name||'—';
+  $('d-phone').textContent=r.phone||'—';
+  $('d-category').textContent=r.category||'—';
+  $('d-item').textContent=r.itemName||'—';
+  $('d-desc').textContent=r.description||'—';
+  $('d-where').textContent=r.where||'—';
+  $('d-when').textContent=formatWhen(r.when);
       const waUrl=r.phone?buildWA(r.phone,`Hi ${r.name||''}, about your ${String(r.category||'item').toLowerCase()}: ${r.itemName||''}`):'#';
-      $('#d-wa').href=waUrl;
-      $('#d-wa').classList.toggle('disabled',!r.phone);
+  $('d-wa').href=waUrl;
+  $('d-wa').classList.toggle('disabled',!r.phone);
       const dm=getDetailModal();
       if(dm) dm.show();
     };
@@ -227,7 +227,7 @@
         if(!res.ok){
           const text=await res.text().catch(()=>'<unable to read response>');
           console.error('API error',res.status,res.statusText,text);
-          $('#debug').innerText=`API error ${res.status}: ${text.slice(0,300)}`;
+          $('debug').innerText=`API error ${res.status}: ${text.slice(0,300)}`;
           showToast('Failed to sync ⚠️','danger',2500);
           return;
         }
@@ -236,7 +236,7 @@
         catch(parseErr){
           const text=await res.text().catch(()=>'<unable to read response>');
           console.error('JSON parse error',parseErr,text);
-          $('#debug').innerText='Invalid JSON returned from API';
+          $('debug').innerText='Invalid JSON returned from API';
           showToast('Invalid data ⚠️','danger',2500);
           return;
         }
@@ -247,14 +247,14 @@
         found=allData.filter(x=>/found/i.test(String(x.category||'')));
         renderTab(lost,$('grid-lost'));
         renderTab(found,$('grid-found'));
-        $('#debug').innerText=`Counts → all:${allData.length}, lost:${lost.length}, found:${found.length}`;
+  $('debug').innerText=`Counts → all:${allData.length}, lost:${lost.length}, found:${found.length}`;
         if(newHash!==lastHash){
           showToast('Data updated ✅','success',2000);
           lastHash=newHash;
         }
       }catch(err){
         console.error('Network/other error',err);
-        $('#debug').innerText='Network error. See console for details.';
+  $('debug').innerText='Network error. See console for details.';
         showToast('Network error ⚠️','danger',2500);
       }finally{
         hideLoader();
