@@ -7,7 +7,7 @@
 
 body {
   background: #f8fafc;
-  padding-bottom: 110px; /* Space for fixed bottom ad */
+  padding-bottom: 150px; /* Increased space for fixed bottom ad + safe area */
 }
 
 /* Ad Placement */
@@ -16,14 +16,16 @@ body {
   bottom: 0;
   left: 0;
   width: 100%;
-  z-index: 1040;
+  z-index: 9999; /* Ensure it's on top of everything */
   background: #fff;
   border-top: 1px solid #e5e7eb;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 10px;
+  /* Add safe area padding for mobile devices (iPhone home bar) */
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 
 .ad-content {
