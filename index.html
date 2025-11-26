@@ -38,7 +38,8 @@
           <button class="nav-link" id="found-tab" data-bs-toggle="pill" data-bs-target="#found-pane" type="button" role="tab">Found</button>
         </li>
       </ul>
-      <a href="https://forms.gle/ChUpk3x3BMwSLQXN7" target="_blank" rel="noopener" class="btn btn-danger ms-md-auto">Report</a>
+      <button type="button" class="btn btn-success ms-md-auto" data-bs-toggle="modal" data-bs-target="#donationModal">Support us</button>
+      <a href="https://forms.gle/ChUpk3x3BMwSLQXN7" target="_blank" rel="noopener" class="btn btn-danger">Report</a>
     </div>
 
     <div class="tab-content">
@@ -63,6 +64,14 @@
     <div id="debug" class="small text-muted"></div>
   </div>
 
+  <!-- Ad Placement -->
+  <div class="ad-banner-bottom">
+    <div class="ad-content">
+      <!-- Replace this with your actual ad code -->
+      <span class="text-muted small">Ad Space (728x90 / 320x50)</span>
+    </div>
+  </div>
+
   <!-- Detail Modal -->
   <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
@@ -85,6 +94,26 @@
         </div>
         <div class="modal-footer">
           <a id="d-wa" target="_blank" class="btn btn-brand">Contact on WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Donation Modal -->
+  <div class="modal fade" id="donationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Support Us</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img src="assets/QRIS.jpeg" alt="QRIS" class="img-fluid rounded mb-3" style="max-height: 400px;">
+          <p class="text-muted mb-0">Scan QRIS to donate</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <a href="assets/QRIS.jpeg" download="QRIS_LNFUNJ.jpeg" class="btn btn-primary">Download</a>
         </div>
       </div>
     </div>
